@@ -25,21 +25,20 @@ function getProblemDifficulty(): string | null {
 interface ProblemInfo {
     slug: string;
     title: string;
-    difficulty: string;
+    difficulty: string | null;
 }
 
 function getProblemInfo(): ProblemInfo | null {
     const slug = getProblemSlug();
-    const difficulty = getProblemDifficulty();
 
-    if (!slug || !difficulty) {
+    if (!slug) {
         return null;
     }
 
     return {
         slug,
         title: getProblemTitle(),
-        difficulty,
+        difficulty: getProblemDifficulty(),
     };
 }
 
@@ -88,6 +87,54 @@ function getAttempts(): Attempt[] {
     });
 }
 
+function getTodaysAttempts(attempts: Attempt[]): Attempt[] {
+    const today = new Date();
+
+    return attempts.filter((attempt) => {
+        const dateText = attempt.date.toLowerCase();
+
+        if (
+            dateText.includes("second") ||
+            dateText.includes("minute") ||
+            dateText.includes("hour") ||
+            dateText === "just now"
+        ) {
+            return true;
+        }
+
+        const attemptDate = new Date(attempt.date);
+
+        if (Number.isNaN(attemptDate.getTime())) {
+            return false;
+        }
+
+        return (
+            attemptDate.getFullYear() === today.getFullYear() &&
+            attemptDate.getMonth() === today.getMonth() &&
+            attemptDate.getDate() === today.getDate()
+        );
+    });
+}
+
+function statusToEmoji(status: string): string {
+    switch (status) {
+        case "Accepted":
+            return "🟩";
+        case "Wrong Answer":
+            return "🟥";
+        case "Time Limit Exceeded":
+            return "🟨";
+        case "Runtime Error":
+            return "🟧";
+        case "Memory Limit Exceeded":
+            return "🟪";
+        case "Compile Error":
+            return "⬛";
+        default:
+            return "⬜";
+    }
+}
+
 if (!existingButton) {
     const button = document.createElement("button");
 
@@ -107,10 +154,19 @@ if (!existingButton) {
 
     button.addEventListener("click", () => {
         const problem = getProblemInfo();
+
         const attempts = getAttempts();
+        const todaysAttempts = getTodaysAttempts(attempts);
+
+        const chronologicalAttempts = [...todaysAttempts].reverse();
+
+        const result = chronologicalAttempts
+            .map((attempt) => statusToEmoji(attempt.status))
+            .join(" ");
 
         console.log("Problem:", problem);
-        console.log("Attempts:", attempts);
+        console.log("Today's attempts:", chronologicalAttempts);
+        console.log("Result:", result);
     });
 
     document.body.appendChild(button);

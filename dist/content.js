@@ -16,14 +16,13 @@ function getProblemDifficulty() {
 }
 function getProblemInfo() {
     const slug = getProblemSlug();
-    const difficulty = getProblemDifficulty();
-    if (!slug || !difficulty) {
+    if (!slug) {
         return null;
     }
     return {
         slug,
         title: getProblemTitle(),
-        difficulty,
+        difficulty: getProblemDifficulty(),
     };
 }
 function getAttempts() {
@@ -55,6 +54,43 @@ function getAttempts() {
         };
     });
 }
+function getTodaysAttempts(attempts) {
+    const today = new Date();
+    return attempts.filter((attempt) => {
+        const dateText = attempt.date.toLowerCase();
+        if (dateText.includes("second") ||
+            dateText.includes("minute") ||
+            dateText.includes("hour") ||
+            dateText === "just now") {
+            return true;
+        }
+        const attemptDate = new Date(attempt.date);
+        if (Number.isNaN(attemptDate.getTime())) {
+            return false;
+        }
+        return (attemptDate.getFullYear() === today.getFullYear() &&
+            attemptDate.getMonth() === today.getMonth() &&
+            attemptDate.getDate() === today.getDate());
+    });
+}
+function statusToEmoji(status) {
+    switch (status) {
+        case "Accepted":
+            return "🟩";
+        case "Wrong Answer":
+            return "🟥";
+        case "Time Limit Exceeded":
+            return "🟨";
+        case "Runtime Error":
+            return "🟧";
+        case "Memory Limit Exceeded":
+            return "🟪";
+        case "Compile Error":
+            return "⬛";
+        default:
+            return "⬜";
+    }
+}
 if (!existingButton) {
     const button = document.createElement("button");
     button.id = "leetcode-share-button";
@@ -72,8 +108,14 @@ if (!existingButton) {
     button.addEventListener("click", () => {
         const problem = getProblemInfo();
         const attempts = getAttempts();
+        const todaysAttempts = getTodaysAttempts(attempts);
+        const chronologicalAttempts = [...todaysAttempts].reverse();
+        const result = chronologicalAttempts
+            .map((attempt) => statusToEmoji(attempt.status))
+            .join(" ");
         console.log("Problem:", problem);
-        console.log("Attempts:", attempts);
+        console.log("Today's attempts:", chronologicalAttempts);
+        console.log("Result:", result);
     });
     document.body.appendChild(button);
 }
