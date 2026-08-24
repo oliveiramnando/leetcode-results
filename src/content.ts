@@ -44,74 +44,84 @@ function getProblemInfo(): ProblemInfo | null {
 
 interface Attempt {
     status: string;
-    date: string;
+    timestamp: number;
 }
 
-function getAttempts(): Attempt[] {
-    const rows = [
-        ...document.querySelectorAll<HTMLAnchorElement>(
-            'a[href*="/submissions/"]'
-        ),
-    ];
-
-    const statuses = [
-        "Accepted",
-        "Wrong Answer",
-        "Time Limit Exceeded",
-        "Runtime Error",
-        "Memory Limit Exceeded",
-        "Compile Error",
-    ];
-
-    return rows.map((row) => {
-        const columns = row.children[0]?.children;
-
-        if (!columns || columns.length < 2) {
-            return {
-                status: "Unknown",
-                date: "",
-            };
-        }
-
-        const statusAndDate = columns[1].textContent?.trim() ?? "";
-
-        const status =
-            statuses.find((s) => statusAndDate.startsWith(s)) ?? "Unknown";
-
-        const date = statusAndDate.replace(status, "").trim();
-
-        return {
-            status,
-            date,
-        };
+async function getAttempts(slug: string): Promise<Attempt[]> {
+    const response = await fetch("https://leetcode.com/graphql/", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            operationName: "submissionList",
+            variables: {
+                offset: 0,
+                limit: 20,
+                questionSlug: slug,
+            },
+            query: `
+                query submissionList(
+                    $offset: Int!,
+                    $limit: Int!,
+                    $questionSlug: String!
+                ) {
+                    questionSubmissionList(
+                        offset: $offset,
+                        limit: $limit,
+                        questionSlug: $questionSlug
+                    ) {
+                        submissions {
+                            id
+                            statusDisplay
+                            lang
+                            timestamp
+                        }
+                    }
+                }
+            `,
+        }),
     });
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch submissions: ${response.status}`
+        );
+    }
+
+    const data = await response.json();
+
+    const submissions =
+        data.data?.questionSubmissionList?.submissions ?? [];
+
+    return submissions.map((submission: any) => ({
+        status: submission.statusDisplay,
+        timestamp: Number(submission.timestamp),
+    }));
 }
 
 function getTodaysAttempts(attempts: Attempt[]): Attempt[] {
-    const today = new Date();
+    const now = new Date();
+
+    const startOfToday = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate()
+    ).getTime();
+
+    const startOfTomorrow = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1
+    ).getTime();
 
     return attempts.filter((attempt) => {
-        const dateText = attempt.date.toLowerCase();
-
-        if (
-            dateText.includes("second") ||
-            dateText.includes("minute") ||
-            dateText.includes("hour") ||
-            dateText === "just now"
-        ) {
-            return true;
-        }
-
-        const attemptDate = new Date(attempt.date);
-
-        if (Number.isNaN(attemptDate.getTime())) {
-            return false;
-        }
+        const attemptTime = attempt.timestamp * 1000;
 
         return (
-            attemptDate.getFullYear() === today.getFullYear() &&
-            attemptDate.getMonth() === today.getMonth() &&
-            attemptDate.getDate() === today.getDate()
+            attemptTime >= startOfToday &&
+            attemptTime < startOfTomorrow
         );
     });
 }
@@ -135,6 +145,25 @@ function statusToEmoji(status: string): string {
     }
 }
 
+function generateShareText(
+    problem: ProblemInfo,
+    attempts: Attempt[]
+): string {
+    const result = attempts
+        .map((attempt) => statusToEmoji(attempt.status))
+        .join(" ");
+
+    const attemptWord = attempts.length === 1 ? "attempt" : "attempts";
+
+    return `LeetCode
+
+${problem.title}
+
+${result}
+
+Solved in ${attempts.length} ${attemptWord}`;
+}
+
 if (!existingButton) {
     const button = document.createElement("button");
 
@@ -152,21 +181,43 @@ if (!existingButton) {
         fontWeight: "600",
     });
 
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
         const problem = getProblemInfo();
 
-        const attempts = getAttempts();
+        if (!problem) {
+            console.error("Could not find problem information.");
+            return;
+        }
+
+        const attempts = await getAttempts(problem.slug);
         const todaysAttempts = getTodaysAttempts(attempts);
 
         const chronologicalAttempts = [...todaysAttempts].reverse();
 
-        const result = chronologicalAttempts
-            .map((attempt) => statusToEmoji(attempt.status))
-            .join(" ");
+        if (chronologicalAttempts.length === 0) {
+            console.log("No attempts found for today.");
+            return;
+        }
 
-        console.log("Problem:", problem);
-        console.log("Today's attempts:", chronologicalAttempts);
-        console.log("Result:", result);
+        const shareText = generateShareText(
+            problem,
+            chronologicalAttempts
+        );
+
+        try {
+            await navigator.clipboard.writeText(shareText);
+
+            console.log("Copied:");
+            console.log(shareText);
+
+            button.textContent = "Copied!";
+
+            setTimeout(() => {
+                button.textContent = "Share LC";
+            }, 1500);
+        } catch (error) {
+            console.error("Failed to copy result:", error);
+        }
     });
 
     document.body.appendChild(button);
