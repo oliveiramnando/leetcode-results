@@ -109,6 +109,18 @@ function attemptsUntilSolved(attempts) {
     }
     return attempts.slice(0, acceptedIndex + 1);
 }
+function difficultyToEmoji(difficulty) {
+    switch (difficulty) {
+        case "Easy":
+            return "🟢";
+        case "Medium":
+            return "🟡";
+        case "Hard":
+            return "🔴";
+        default:
+            return "⚪";
+    }
+}
 function statusToEmoji(status) {
     switch (status) {
         case "Accepted":
@@ -132,12 +144,9 @@ function generateShareText(problem, attempts) {
         .map((attempt) => statusToEmoji(attempt.status))
         .join(" ");
     const attemptWord = attempts.length === 1 ? "attempt" : "attempts";
-    return `LeetCode
-
-${problem.title}
-
+    return `LeetCode - ${problem.title}
+${difficultyToEmoji(problem.difficulty)} ${problem.difficulty}
 ${result}
-
 Solved in ${attempts.length} ${attemptWord}`;
 }
 if (!existingButton) {

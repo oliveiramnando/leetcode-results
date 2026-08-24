@@ -13,7 +13,7 @@ function getProblemSlug(): string | null {
 interface ProblemInfo {
     slug: string;
     title: string;
-    difficulty: string | null;
+    difficulty: string;
 }
 
 async function getProblemInfo(): Promise<ProblemInfo | null> {
@@ -160,6 +160,19 @@ function attemptsUntilSolved(attempts: Attempt[]): Attempt[] {
     return attempts.slice(0, acceptedIndex + 1);
 }
 
+function difficultyToEmoji(difficulty: string): string {
+    switch (difficulty) {
+        case "Easy":
+            return "🟢";
+        case "Medium":
+            return "🟡";
+        case "Hard":
+            return "🔴";
+        default:
+            return "⚪";
+    }
+}
+
 function statusToEmoji(status: string): string {
     switch (status) {
         case "Accepted":
@@ -189,12 +202,9 @@ function generateShareText(
 
     const attemptWord = attempts.length === 1 ? "attempt" : "attempts";
 
-    return `LeetCode
-
-${problem.title}
-
+    return `LeetCode - ${problem.title}
+${difficultyToEmoji(problem.difficulty)} ${problem.difficulty}
 ${result}
-
 Solved in ${attempts.length} ${attemptWord}`;
 }
 
