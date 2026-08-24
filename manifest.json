@@ -3,6 +3,16 @@
   "name": "LeetCode Share",
   "version": "0.1.0",
   "description": "Share your LeetCode Daily Challenge results with friends.",
+
+  "icons": {
+    "128": "leetcode_share.png"
+  },
+
+  "action": {
+    "default_icon": "leetcode_share.png",
+    "default_title": "LeetCode Share"
+  },
+
   "content_scripts": [
     {
       "matches": ["https://leetcode.com/*"],
