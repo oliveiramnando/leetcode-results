@@ -1,9 +1,9 @@
-const existingButton = document.getElementById("leetcode-results-button");  
+const existingButton = document.getElementById("leetcode-share-button");
 
 if (!existingButton) {
     const button = document.createElement("button");
 
-    button.id = "leetcode-results-button";
+    button.id = "leetcode-share-button";
     button.textContent = "Share LC";
 
     Object.assign(button.style, {
@@ -18,7 +18,9 @@ if (!existingButton) {
     });
 
     button.addEventListener("click", () => {
-        console.log("LeetCode Share Workes")
+        console.log("URL:", window.location.href);
+        console.log("Path:", window.location.pathname);
+        console.log("Page title:", document.title);
     });
 
     document.body.appendChild(button);
