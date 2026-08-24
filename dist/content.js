@@ -1,5 +1,19 @@
 "use strict";
 const existingButton = document.getElementById("leetcode-share-button");
+function getProblemSlug() {
+    const parts = window.location.pathname.split("/");
+    if (parts[1] !== "problems") {
+        return null;
+    }
+    return parts[2] || null;
+}
+function getProblemTitle() {
+    return document.title.replace(" - LeetCode", "");
+}
+function getProblemDifficulty() {
+    const difficultyElement = document.querySelector('[class*="text-difficulty-"]');
+    return difficultyElement?.textContent?.trim() || null;
+}
 if (!existingButton) {
     const button = document.createElement("button");
     button.id = "leetcode-share-button";
@@ -15,9 +29,12 @@ if (!existingButton) {
         fontWeight: "600",
     });
     button.addEventListener("click", () => {
-        console.log("URL:", window.location.href);
-        console.log("Path:", window.location.pathname);
-        console.log("Page title:", document.title);
+        const slug = getProblemSlug();
+        const title = getProblemTitle();
+        const difficulty = getProblemDifficulty();
+        console.log("Slug:", slug);
+        console.log("Title:", title);
+        console.log("Difficulty:", difficulty);
     });
     document.body.appendChild(button);
 }
