@@ -7,22 +7,43 @@ function getProblemSlug() {
     }
     return parts[2] || null;
 }
-function getProblemTitle() {
-    return document.title.replace(" - LeetCode", "");
-}
-function getProblemDifficulty() {
-    const difficultyElement = document.querySelector('[class*="text-difficulty-"]');
-    return difficultyElement?.textContent?.trim() || null;
-}
-function getProblemInfo() {
+async function getProblemInfo() {
     const slug = getProblemSlug();
     if (!slug) {
         return null;
     }
+    const response = await fetch("https://leetcode.com/graphql/", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            variables: {
+                titleSlug: slug,
+            },
+            query: `
+                query questionData($titleSlug: String!) {
+                    question(titleSlug: $titleSlug) {
+                        title
+                        difficulty
+                    }
+                }
+            `,
+        }),
+    });
+    if (!response.ok) {
+        throw new Error(`Failed to fetch problem info: ${response.status}`);
+    }
+    const data = await response.json();
+    const question = data.data?.question;
+    if (!question) {
+        return null;
+    }
     return {
         slug,
-        title: getProblemTitle(),
-        difficulty: getProblemDifficulty(),
+        title: question.title,
+        difficulty: question.difficulty,
     };
 }
 async function getAttempts(slug) {
@@ -81,6 +102,13 @@ function getTodaysAttempts(attempts) {
             attemptTime < startOfTomorrow);
     });
 }
+function attemptsUntilSolved(attempts) {
+    const acceptedIndex = attempts.findIndex((attempt) => attempt.status === "Accepted");
+    if (acceptedIndex === -1) {
+        return attempts;
+    }
+    return attempts.slice(0, acceptedIndex + 1);
+}
 function statusToEmoji(status) {
     switch (status) {
         case "Accepted":
@@ -127,7 +155,7 @@ if (!existingButton) {
         fontWeight: "600",
     });
     button.addEventListener("click", async () => {
-        const problem = getProblemInfo();
+        const problem = await getProblemInfo();
         if (!problem) {
             console.error("Could not find problem information.");
             return;
@@ -135,11 +163,12 @@ if (!existingButton) {
         const attempts = await getAttempts(problem.slug);
         const todaysAttempts = getTodaysAttempts(attempts);
         const chronologicalAttempts = [...todaysAttempts].reverse();
+        const finalAttempts = attemptsUntilSolved(chronologicalAttempts);
         if (chronologicalAttempts.length === 0) {
             console.log("No attempts found for today.");
             return;
         }
-        const shareText = generateShareText(problem, chronologicalAttempts);
+        const shareText = generateShareText(problem, finalAttempts);
         try {
             await navigator.clipboard.writeText(shareText);
             console.log("Copied:");

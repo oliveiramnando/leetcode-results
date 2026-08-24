@@ -10,35 +10,57 @@ function getProblemSlug(): string | null {
     return parts[2] || null;
 }
 
-function getProblemTitle(): string {
-    return document.title.replace(" - LeetCode", "");
-}
-
-function getProblemDifficulty(): string | null {
-    const difficultyElement = document.querySelector(
-        '[class*="text-difficulty-"]'
-    );
-
-    return difficultyElement?.textContent?.trim() || null;
-}
-
 interface ProblemInfo {
     slug: string;
     title: string;
     difficulty: string | null;
 }
 
-function getProblemInfo(): ProblemInfo | null {
+async function getProblemInfo(): Promise<ProblemInfo | null> {
     const slug = getProblemSlug();
 
     if (!slug) {
         return null;
     }
 
+    const response = await fetch("https://leetcode.com/graphql/", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            variables: {
+                titleSlug: slug,
+            },
+            query: `
+                query questionData($titleSlug: String!) {
+                    question(titleSlug: $titleSlug) {
+                        title
+                        difficulty
+                    }
+                }
+            `,
+        }),
+    });
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch problem info: ${response.status}`
+        );
+    }
+
+    const data = await response.json();
+    const question = data.data?.question;
+
+    if (!question) {
+        return null;
+    }
+
     return {
         slug,
-        title: getProblemTitle(),
-        difficulty: getProblemDifficulty(),
+        title: question.title,
+        difficulty: question.difficulty,
     };
 }
 
@@ -126,6 +148,18 @@ function getTodaysAttempts(attempts: Attempt[]): Attempt[] {
     });
 }
 
+function attemptsUntilSolved(attempts: Attempt[]): Attempt[] {
+    const acceptedIndex = attempts.findIndex(
+        (attempt) => attempt.status === "Accepted"
+    );
+
+    if (acceptedIndex === -1) {
+        return attempts;
+    }
+
+    return attempts.slice(0, acceptedIndex + 1);
+}
+
 function statusToEmoji(status: string): string {
     switch (status) {
         case "Accepted":
@@ -182,7 +216,7 @@ if (!existingButton) {
     });
 
     button.addEventListener("click", async () => {
-        const problem = getProblemInfo();
+        const problem = await getProblemInfo();
 
         if (!problem) {
             console.error("Could not find problem information.");
@@ -193,6 +227,9 @@ if (!existingButton) {
         const todaysAttempts = getTodaysAttempts(attempts);
 
         const chronologicalAttempts = [...todaysAttempts].reverse();
+        const finalAttempts = attemptsUntilSolved(
+            chronologicalAttempts
+        );
 
         if (chronologicalAttempts.length === 0) {
             console.log("No attempts found for today.");
@@ -201,7 +238,7 @@ if (!existingButton) {
 
         const shareText = generateShareText(
             problem,
-            chronologicalAttempts
+            finalAttempts
         );
 
         try {
