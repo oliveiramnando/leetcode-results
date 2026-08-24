@@ -1,9 +1,13 @@
 {
-    "name": "Hello Extensions",
-    "description": "Base Level Extension",
-    "version": "1.0",
-    "manifest_version": 3,
-    "action": {
-        "default_popup": "hello.html"
+  "manifest_version": 3,
+  "name": "LeetCode Share",
+  "version": "0.1.0",
+  "description": "Share your LeetCode Daily Challenge results with friends.",
+  "content_scripts": [
+    {
+      "matches": ["https://leetcode.com/*"],
+      "js": ["dist/content.js"],
+      "run_at": "document_idle"
     }
+  ]
 }
