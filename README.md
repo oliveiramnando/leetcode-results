@@ -180,7 +180,7 @@ LeetCode Share does not sell user data or use it for advertising, analytics, len
 The extension runs on:
 
 ```text
-https://leetcode.com/problems/*
+https://leetcode.com/*
 ```
 
 This access is necessary to:
