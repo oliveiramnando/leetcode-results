@@ -14,6 +14,47 @@ function getProblemDifficulty() {
     const difficultyElement = document.querySelector('[class*="text-difficulty-"]');
     return difficultyElement?.textContent?.trim() || null;
 }
+function getProblemInfo() {
+    const slug = getProblemSlug();
+    const difficulty = getProblemDifficulty();
+    if (!slug || !difficulty) {
+        return null;
+    }
+    return {
+        slug,
+        title: getProblemTitle(),
+        difficulty,
+    };
+}
+function getAttempts() {
+    const rows = [
+        ...document.querySelectorAll('a[href*="/submissions/"]'),
+    ];
+    const statuses = [
+        "Accepted",
+        "Wrong Answer",
+        "Time Limit Exceeded",
+        "Runtime Error",
+        "Memory Limit Exceeded",
+        "Compile Error",
+    ];
+    return rows.map((row) => {
+        const columns = row.children[0]?.children;
+        if (!columns || columns.length < 2) {
+            return {
+                status: "Unknown",
+                date: "",
+            };
+        }
+        const statusAndDate = columns[1].textContent?.trim() ?? "";
+        const status = statuses.find((s) => statusAndDate.startsWith(s)) ?? "Unknown";
+        const date = statusAndDate.replace(status, "").trim();
+        return {
+            status,
+            date,
+        };
+    });
+}
 if (!existingButton) {
     const button = document.createElement("button");
     button.id = "leetcode-share-button";
@@ -29,12 +70,10 @@ if (!existingButton) {
         fontWeight: "600",
     });
     button.addEventListener("click", () => {
-        const slug = getProblemSlug();
-        const title = getProblemTitle();
-        const difficulty = getProblemDifficulty();
-        console.log("Slug:", slug);
-        console.log("Title:", title);
-        console.log("Difficulty:", difficulty);
+        const problem = getProblemInfo();
+        const attempts = getAttempts();
+        console.log("Problem:", problem);
+        console.log("Attempts:", attempts);
     });
     document.body.appendChild(button);
 }

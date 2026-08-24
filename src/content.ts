@@ -22,6 +22,72 @@ function getProblemDifficulty(): string | null {
     return difficultyElement?.textContent?.trim() || null;
 }
 
+interface ProblemInfo {
+    slug: string;
+    title: string;
+    difficulty: string;
+}
+
+function getProblemInfo(): ProblemInfo | null {
+    const slug = getProblemSlug();
+    const difficulty = getProblemDifficulty();
+
+    if (!slug || !difficulty) {
+        return null;
+    }
+
+    return {
+        slug,
+        title: getProblemTitle(),
+        difficulty,
+    };
+}
+
+interface Attempt {
+    status: string;
+    date: string;
+}
+
+function getAttempts(): Attempt[] {
+    const rows = [
+        ...document.querySelectorAll<HTMLAnchorElement>(
+            'a[href*="/submissions/"]'
+        ),
+    ];
+
+    const statuses = [
+        "Accepted",
+        "Wrong Answer",
+        "Time Limit Exceeded",
+        "Runtime Error",
+        "Memory Limit Exceeded",
+        "Compile Error",
+    ];
+
+    return rows.map((row) => {
+        const columns = row.children[0]?.children;
+
+        if (!columns || columns.length < 2) {
+            return {
+                status: "Unknown",
+                date: "",
+            };
+        }
+
+        const statusAndDate = columns[1].textContent?.trim() ?? "";
+
+        const status =
+            statuses.find((s) => statusAndDate.startsWith(s)) ?? "Unknown";
+
+        const date = statusAndDate.replace(status, "").trim();
+
+        return {
+            status,
+            date,
+        };
+    });
+}
+
 if (!existingButton) {
     const button = document.createElement("button");
 
@@ -40,13 +106,11 @@ if (!existingButton) {
     });
 
     button.addEventListener("click", () => {
-        const slug = getProblemSlug();
-        const title = getProblemTitle();
-        const difficulty = getProblemDifficulty();
+        const problem = getProblemInfo();
+        const attempts = getAttempts();
 
-        console.log("Slug:", slug);
-        console.log("Title:", title);
-        console.log("Difficulty:", difficulty);
+        console.log("Problem:", problem);
+        console.log("Attempts:", attempts);
     });
 
     document.body.appendChild(button);
