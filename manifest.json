@@ -5,17 +5,17 @@
   "description": "Share your LeetCode Daily Challenge results with friends.",
 
   "icons": {
-    "128": "leetcode_share.png"
+    "128": "leetcode_share_128.png"
   },
 
   "action": {
-    "default_icon": "leetcode_share.png",
+    "default_icon": "leetcode_share_128.png",
     "default_title": "LeetCode Share"
   },
 
   "content_scripts": [
     {
-      "matches": ["https://leetcode.com/*"],
+      "matches": ["https://leetcode.com/problems/*"],
       "js": ["dist/content.js"],
       "run_at": "document_idle"
     }
